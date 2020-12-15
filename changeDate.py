@@ -1,7 +1,7 @@
+import sqlite3
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import Qt
-import sqlite3
 from datetime import date
 import style
 
@@ -9,21 +9,21 @@ con = sqlite3.connect("plants.db")
 cur = con.cursor()
 
 
-class ChangeDate(QWidget):
+class ChangeDateWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Watering plant")
         self.setWindowIcon(QIcon("icons/watering.png"))
         self.setGeometry(250, 150, 400, 400)
         self.setFixedSize(self.size())
-        self.UI()
+        self.create_UI()
         self.show()
 
-    def UI(self):
-        self.widgets()
-        self.layouts()
+    def create_UI(self):
+        self.create_widgets()
+        self.create_layouts()
 
-    def widgets(self):
+    def create_widgets(self):
         # top layout widgets
         self.text = QLabel("Watering")
         self.text.setAlignment(Qt.AlignCenter)
@@ -42,7 +42,7 @@ class ChangeDate(QWidget):
         for plant in plants:
             self.plant_box.addItem(plant[1], plant[0])
 
-    def layouts(self):
+    def create_layouts(self):
         self.main_layout = QVBoxLayout()
         self.top_layout = QVBoxLayout()
         self.bottom_layout = QFormLayout()

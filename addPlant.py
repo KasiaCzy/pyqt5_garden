@@ -1,8 +1,8 @@
 import os
+import sqlite3
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
-import sqlite3
 from PIL import Image
 from datetime import timedelta
 import style
@@ -13,21 +13,21 @@ cur = con.cursor()
 default_img = 'plant.png'
 
 
-class AddPlant(QWidget):
+class AddPlantWindow(QWidget):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Add plant")
         self.setWindowIcon(QIcon("icons/icon.png"))
         self.setGeometry(250, 150, 500, 600)
         self.setFixedSize(self.size())
-        self.UI()
+        self.create_UI()
         self.show()
 
-    def UI(self):
-        self.main_design()
-        self.layouts()
+    def create_UI(self):
+        self.create_main_design()
+        self.create_layouts()
 
-    def main_design(self):
+    def create_main_design(self):
         # top layout widgets
         self.title = QLabel("Add plant")
         self.img = QLabel()
@@ -58,7 +58,7 @@ class AddPlant(QWidget):
         self.submit_btn.setStyleSheet(style.btn_style())
         self.submit_btn.clicked.connect(self.add_plant)
 
-    def layouts(self):
+    def create_layouts(self):
         self.main_layout = QVBoxLayout()
         self.top_layout = QHBoxLayout()
         self.bottom_layout = QFormLayout()
@@ -93,6 +93,7 @@ class AddPlant(QWidget):
             default_img = os.path.basename(self.file_path)
             img = Image.open(self.file_path).resize(size)
             img.save(f'images/{default_img}')
+            self.img.setPixmap(QPixmap(f'images/{default_img}'))
 
     def add_plant(self):
         global default_img
