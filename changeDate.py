@@ -1,7 +1,7 @@
 import sqlite3
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
-from PyQt5.QtCore import Qt
+from PyQt5.QtCore import *
 from datetime import date
 import style
 
@@ -10,6 +10,8 @@ cur = con.cursor()
 
 
 class ChangeDateWindow(QWidget):
+    date_changed = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Watering plant")
@@ -17,7 +19,6 @@ class ChangeDateWindow(QWidget):
         self.setGeometry(250, 150, 400, 400)
         self.setFixedSize(self.size())
         self.create_UI()
-        self.show()
 
     def create_UI(self):
         self.create_widgets()
@@ -71,5 +72,6 @@ class ChangeDateWindow(QWidget):
             cur.execute(update_query, (dt, plant_id))
             con.commit()
             QMessageBox.information(self, "Success", "Date of last watering has been update.")
+            self.date_changed.emit()
         except:
             QMessageBox.information(self, "Warning", "Date of last watering has not been update.")

@@ -14,6 +14,8 @@ default_img = 'plant.png'
 
 
 class AddPlantWindow(QWidget):
+    plant_added = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Add plant")
@@ -21,7 +23,6 @@ class AddPlantWindow(QWidget):
         self.setGeometry(250, 150, 500, 600)
         self.setFixedSize(self.size())
         self.create_UI()
-        self.show()
 
     def create_UI(self):
         self.create_main_design()
@@ -47,7 +48,8 @@ class AddPlantWindow(QWidget):
         # last_watering field
         self.last_watering_entry = QDateEdit()
         self.last_watering_entry.setFont(QFont('', 10))
-        self.last_watering_entry.setMinimumDate(QDate.currentDate().toPyDate() - timedelta(days=10))
+        self.last_watering_entry.setMinimumDate(QDate.currentDate().toPyDate() - timedelta(days=30))
+        self.last_watering_entry.setDate(QDate.currentDate().toPyDate())
         self.last_watering_entry.setCalendarPopup(True)
         # img field
         self.img_btn = QPushButton("Upload")
@@ -109,6 +111,7 @@ class AddPlantWindow(QWidget):
                 cur.execute(query,(name, watering_freq, last_watering, note, img))
                 con.commit()
                 QMessageBox.information(self, "Success", "Plant has been added.")
+                self.plant_added.emit()
                 self.close()
             except:
                 QMessageBox.information(self, "Warning", "Plant has not been added.")

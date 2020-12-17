@@ -16,7 +16,36 @@ plant_id = None
 default_img = 'plant.png'
 
 
+class MainApp(QApplication):
+    def __init__(self, argv):
+        super().__init__(argv)
+
+        self.main_window = Main()
+        self.main_window.show()
+
+        self.add_plant_window = AddPlantWindow()
+        self.main_window.add_plant_requested.connect(self.add_plant_window.show)
+        self.add_plant_window.plant_added.connect(self.main_window.refresh_view)
+
+        self.change_date_window = ChangeDateWindow()
+        self.main_window.change_date_requested.connect(self.change_date_window.show)
+        self.change_date_window.date_changed.connect(self.main_window.refresh_view)
+
+        self.display_plant_window = DisplayPlantWindow()
+        self.main_window.display_plant_requested.connect(self.create_diplay_plant_window)
+
+    def create_diplay_plant_window(self):
+        self.display_plant_window.close()
+        self.display_plant_window = DisplayPlantWindow()
+        self.display_plant_window.show()
+        self.display_plant_window.plant_updated.connect(self.main_window.refresh_view)
+
+
 class Main(QMainWindow):
+    add_plant_requested = pyqtSignal(bool)
+    change_date_requested = pyqtSignal(bool)
+    display_plant_requested = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Home Garden")
@@ -25,7 +54,6 @@ class Main(QMainWindow):
         self.setFixedSize(self.size())
 
         self.create_UI()
-        self.show()
 
     def create_UI(self):
         self.create_tool_bar()
@@ -42,12 +70,12 @@ class Main(QMainWindow):
         # add plant
         self.add_plant = QAction(QIcon("icons/add.png"), "Add plant", self)
         self.tb.addAction(self.add_plant)
-        self.add_plant.triggered.connect(self.add_new_plant)
+        self.add_plant.triggered.connect(self.add_plant_requested)
         self.tb.addSeparator()
         # watering button
         self.watering = QAction(QIcon("icons/watering.png"), "Water a plant", self)
         self.tb.addAction(self.watering)
-        self.watering.triggered.connect(self.change_last_watering_date)
+        self.watering.triggered.connect(self.change_date_requested)
         self.tb.addSeparator()
         # refresh button
         self.refresh = QAction(QIcon("icons/refresh.png"), "Refresh a view", self)
@@ -214,12 +242,6 @@ class Main(QMainWindow):
         self.list_main_layout.addLayout(self.list_main_right_layout, 40)
         self.tab_watering_list.setLayout(self.list_main_layout)
 
-    def add_new_plant(self):
-        self.new_plant_window = AddPlantWindow()
-
-    def change_last_watering_date(self):
-        self.watering_plant_window = ChangeDateWindow()
-
     def display_plants(self):
         self.plants_table_view.setFont(QFont("Arial", 12))
         for i in reversed(range(self.plants_table.rowCount())):
@@ -267,7 +289,8 @@ class Main(QMainWindow):
         index = self.plants_table_view.currentIndex()
         new_index = self.plants_table_view.model().index(index.row(), 0)
         plant_id = self.plants_table_view.model().data(new_index)
-        self.display_window = DisplayPlantWindow()
+        #self.display_window = DisplayPlantWindow()
+        self.display_plant_requested.emit()
 
     def display_single_click_plant_table(self):
         index = self.plants_table_view.currentIndex()
@@ -326,9 +349,9 @@ class Main(QMainWindow):
     def filter_plants_table(self):
         radio_btn = self.sender()
         if radio_btn.isChecked():
-            if radio_btn.text() == "All plants":
+            if radio_btn == self.all_plants:
                 self.display_plants()
-            elif radio_btn.text() == "Watering regularly":
+            elif radio_btn == self.watering_freq_regularly:
                 query = "SELECT id,name,watering_frequency,watering_date FROM plants WHERE watering_frequency='regularly'"
                 plants = cur.execute(query).fetchall()
                 for i in reversed(range(self.plants_table.rowCount())):
@@ -338,7 +361,7 @@ class Main(QMainWindow):
                     self.plants_table.insertRow(row_number)
                     for column_number, data in enumerate(row_data):
                         self.plants_table.setItem(row_number, column_number, QStandardItem(str(data)))
-            elif radio_btn.text() == "Watering infrequently":
+            elif radio_btn == self.watering_freq_infrequently:
                 query = "SELECT id,name,watering_frequency,watering_date FROM plants " \
                         "WHERE watering_frequency='infrequently'"
                 plants = cur.execute(query).fetchall()
@@ -367,7 +390,7 @@ class Main(QMainWindow):
             QMessageBox.information(self, "Success", "Date of last watering has been updated.")
         else:
             QMessageBox.information(self, "Warning", "Date of last watering has not been updated.")
-        self.refresh_tabs_view()
+        self.refresh_view()
 
     def refresh_tabs_view(self):
         self.display_plants()
@@ -394,12 +417,14 @@ class Main(QMainWindow):
             cur.execute(update_query, (dt, _id))
             con.commit()
             QMessageBox.information(self, "Success", "Date of last watering has been update.")
-            self.refresh_tabs_view()
+            self.refresh_view()
         except:
             QMessageBox.information(self, "Warning", "Date of last watering has not been update.")
 
 
 class DisplayPlantWindow(QWidget):
+    plant_updated = pyqtSignal()
+
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Update Plant")
@@ -407,15 +432,15 @@ class DisplayPlantWindow(QWidget):
         self.setGeometry(250, 150, 500, 600)
         self.setFixedSize(self.size())
         self.create_UI()
-        self.show()
 
     def create_UI(self):
-        self.prepare_plant_details()
-        self.create_widgets()
-        self.create_layouts()
+        global plant_id
+        if plant_id is not None:
+            self.prepare_plant_details()
+            self.create_widgets()
+            self.create_layouts()
 
     def prepare_plant_details(self):
-        global plant_id
         query = "SELECT * FROM plants WHERE id=?"
         plant = cur.execute(query, (plant_id,)).fetchone()
         self.plant_name = plant[1]
@@ -443,7 +468,8 @@ class DisplayPlantWindow(QWidget):
         self.watering_date_entry = QDateEdit()
         self.watering_date_entry.setFont(QFont('', 10))
         dt = datetime.strptime(self.watering_date, "%d.%m.%Y")
-        self.watering_date_entry.setMinimumDate(dt)
+        self.watering_date_entry.setMinimumDate(dt - timedelta(days=30))
+        self.watering_date_entry.setDate(dt)
         self.watering_date_entry.setCalendarPopup(True)
         self.plant_note_entry = QTextEdit()
         self.plant_note_entry.setText(self.plant_note)
@@ -493,15 +519,16 @@ class DisplayPlantWindow(QWidget):
             default_img = os.path.basename(self.file_path)
             img = Image.open(self.file_path).resize(size)
             img.save(f'images/{default_img}')
-            self.plant_img.setPixmap(QPixmap(f'images/{default_img}'))
+            self.plant_image.setPixmap(QPixmap(f'images/{default_img}'))
 
     def update_plant(self):
         global plant_id
+        global default_img
         name = self.plant_name_entry.text()
         watering_freq = self.watering_freq_box.currentText()
         note = self.plant_note_entry.toPlainText()
         last_watering = self.watering_date_entry.text()
-        img = self.plant_img
+        img = default_img
 
         if name and last_watering and watering_freq:
             try:
@@ -509,6 +536,7 @@ class DisplayPlantWindow(QWidget):
                 cur.execute(query,(name, watering_freq, last_watering, note, img, plant_id))
                 con.commit()
                 QMessageBox.information(self, "Success", "Plant has been updated.")
+                self.plant_updated.emit()
                 self.close()
             except:
                 QMessageBox.information(self, "Warning", "Plant has not been updated.")
@@ -527,14 +555,14 @@ class DisplayPlantWindow(QWidget):
                 cur.execute(query, (plant_id,))
                 con.commit()
                 QMessageBox.information(self, "Information", "Plant has been deleted")
+                self.plant_updated.emit()
                 self.close()
             except:
                 QMessageBox.information(self, "Warning", "Plant has not been deleted")
 
 
 def main():
-    app = QApplication(sys.argv)
-    window = Main()
+    app = MainApp(sys.argv)
     sys.exit(app.exec_())
 
 
