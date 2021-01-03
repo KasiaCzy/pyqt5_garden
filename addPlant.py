@@ -1,5 +1,4 @@
 import os
-import sqlite3
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
@@ -7,17 +6,15 @@ from PIL import Image
 from datetime import timedelta
 import style
 
-con = sqlite3.connect("plants.db")
-cur = con.cursor()
-
-default_img = 'plant.png'
-
 
 class AddPlantWindow(QWidget):
     plant_added = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, connection, cursor):
         super().__init__()
+        self.connection = connection
+        self.cursor = cursor
+        self.plant_img = 'plant.png'
         self.setWindowTitle("Add plant")
         self.setWindowIcon(QIcon("icons/icon.png"))
         self.setGeometry(250, 150, 500, 600)
@@ -88,28 +85,26 @@ class AddPlantWindow(QWidget):
         self.setLayout(self.main_layout)
 
     def upload_img(self):
-        global default_img
         size = (128, 128)
         self.file_path,ok = QFileDialog.getOpenFileName(self, "Upload image", "", "Image Files(*.jpg *.png)")
         if ok:
-            default_img = os.path.basename(self.file_path)
+            self.plant_img = os.path.basename(self.file_path)
             img = Image.open(self.file_path).resize(size)
-            img.save(f'images/{default_img}')
-            self.img.setPixmap(QPixmap(f'images/{default_img}'))
+            img.save(f'images/{self.plant_img}')
+            self.img.setPixmap(QPixmap(f'images/{self.plant_img}'))
 
     def add_plant(self):
-        global default_img
         name = self.name_entry.text()
         watering_freq = self.watering_freq_box.currentText()
         note = self.note_entry.toPlainText()
         last_watering = self.last_watering_entry.text()
-        img = default_img
+        img = self.plant_img
 
         if name and last_watering and watering_freq:
             try:
                 query = "INSERT INTO plants (name,watering_frequency,watering_date,note,img) VALUES(?,?,?,?,?)"
-                cur.execute(query,(name, watering_freq, last_watering, note, img))
-                con.commit()
+                self.cursor.execute(query, (name, watering_freq, last_watering, note, img))
+                self.connection.commit()
                 QMessageBox.information(self, "Success", "Plant has been added.")
                 self.plant_added.emit()
                 self.close()

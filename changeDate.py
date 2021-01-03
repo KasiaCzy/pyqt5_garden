@@ -1,19 +1,17 @@
-import sqlite3
 from PyQt5.QtWidgets import *
 from PyQt5.QtGui import *
 from PyQt5.QtCore import *
 from datetime import date
 import style
 
-con = sqlite3.connect("plants.db")
-cur = con.cursor()
-
 
 class ChangeDateWindow(QWidget):
     date_changed = pyqtSignal()
 
-    def __init__(self):
+    def __init__(self, connection, cursor):
         super().__init__()
+        self.connection = connection
+        self.cursor = cursor
         self.setWindowTitle("Watering plant")
         self.setWindowIcon(QIcon("icons/watering.png"))
         self.setGeometry(250, 150, 400, 400)
@@ -38,7 +36,7 @@ class ChangeDateWindow(QWidget):
         self.submit_btn.clicked.connect(self.submit_changed_date)
 
         query_plants = "SELECT id,name FROM plants"
-        plants = cur.execute(query_plants).fetchall()
+        plants = self.cursor.execute(query_plants).fetchall()
 
         for plant in plants:
             self.plant_box.addItem(plant[1], plant[0])
@@ -69,8 +67,8 @@ class ChangeDateWindow(QWidget):
         plant_id = self.plant_box.currentData()
         try:
             update_query = "UPDATE plants set watering_date=? WHERE id=?"
-            cur.execute(update_query, (dt, plant_id))
-            con.commit()
+            self.cursor.execute(update_query, (dt, plant_id))
+            self.connection.commit()
             QMessageBox.information(self, "Success", "Date of last watering has been update.")
             self.date_changed.emit()
         except:
