@@ -1,5 +1,5 @@
 # Home Garden - PyQt5 project
-> This is a simple GUI app for assuring that each of your houseplant is watered properly.
+> This is a simple GUI app for assuring that each of your houseplants is watered properly.
 ## Table of contents
 * [Motivation](#motivation)
 * [Screenshots](#screenshots)
